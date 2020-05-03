@@ -11,7 +11,7 @@ const router = express.Router();
 // Validate Data from signup
 const schema = Joi.object({
   username: Joi.string().pattern(new RegExp('^[a-zA-Z0-9_]{2,30}$')).required(),
-  password: Joi.string().min(6).required(),
+  password: Joi.string().trim().min(8).required(),
 });
 
 // All routes in here are pre-pended with /auth
