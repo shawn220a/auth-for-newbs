@@ -65,6 +65,8 @@
 <script>
 import Joi from '@hapi/joi';
 
+const SIGNUP_URL = 'http://localhost:5000/auth/signup';
+
 const schema = Joi.object({
   username: Joi.string()
     .pattern(new RegExp('^[a-zA-Z0-9_]{2,30}$'))
@@ -88,10 +90,45 @@ export default {
       confirmPassword: '',
     },
   }),
+  watch: {
+    user: {
+      handler() {
+        this.errorMessage = '';
+      },
+      deep: true,
+    },
+  },
   methods: {
     signup() {
+      this.errorMessage = '';
       if (this.validUser()) {
         // Send data to server
+        const body = {
+          username: this.user.username,
+          password: this.user.password,
+        };
+
+        fetch(SIGNUP_URL, {
+          method: 'POST',
+          body: JSON.stringify(body),
+          headers: {
+            'content-type': 'application/json',
+          },
+        })
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            }
+            return response.json().then((error) => {
+              throw new Error(error.message);
+            });
+          })
+          .then((user) => {
+            console.log(user);
+          })
+          .catch((err) => {
+            console.log(err);
+          });
       }
     },
     validUser() {
@@ -102,16 +139,17 @@ export default {
 
       const result = schema.validate(this.user);
 
-      if (result.error === null) {
-        return true;
+      if (result.error) {
+        if (result.error.message.includes('username')) {
+          this.errorMessage = 'Username is invalid.';
+        } else {
+          this.errorMessage = 'Password is invalid.';
+        }
+
+        return false;
       }
 
-      if (result.error.message.includes('username')) {
-        this.errorMessage = 'Username is invalid';
-      } else {
-        this.errorMessage = 'Password is invalid';
-      }
-      return false;
+      return true;
     },
   },
 };
