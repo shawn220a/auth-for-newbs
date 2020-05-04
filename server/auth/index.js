@@ -26,6 +26,7 @@ router.post('/signup', (req, res, next) => {
   const result = schema.validate(req.body);
 
   if (result.error) {
+    res.status(406);
     next(result.error);
   }
 
@@ -39,6 +40,7 @@ router.post('/signup', (req, res, next) => {
         const error = new Error(
           'Username already Exits. Please create a new one.'
         );
+        res.status(409);
         next(error);
       } else {
         // Hash the password
