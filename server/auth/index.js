@@ -15,6 +15,33 @@ const schema = Joi.object({
   password: Joi.string().trim().min(8).required(),
 });
 
+function respondError422(res, next) {
+  res.status(422);
+  const error = new Error('Unable to login.');
+  next(error);
+}
+
+function createTokenSendResponse(user, res, next) {
+  // Creating JWT
+  const payload = {
+    _id: user._id,
+    username: user.username,
+  };
+
+  jwt.sign(
+    payload,
+    process.env.TOKEN_SECRET,
+    { expiresIn: '1d' },
+    (err, token) => {
+      if (err) {
+        respondError422(res, next);
+      } else {
+        res.json({ token });
+      }
+    },
+  );
+}
+
 // All routes in here are pre-pended with /auth
 
 router.get('/', (req, res) => {
@@ -61,12 +88,6 @@ router.post('/signup', (req, res, next) => {
     });
 });
 
-function respondError422(res, next) {
-  res.status(422);
-  const error = new Error('Unable to login.');
-  next(error);
-}
-
 router.post('/login', (req, res, next) => {
   const result = schema.validate(req.body);
 
@@ -81,30 +102,15 @@ router.post('/login', (req, res, next) => {
     .then((user) => {
       if (user) {
         // Comparing login password with hashed password
-        bcrypt.compare(req.body.password, user.password).then((result) => {
-          if (result) {
-            // Creating JWT
-            const payload = {
-              _id: user._id,
-              username: user.username,
-            };
-
-            jwt.sign(
-              payload,
-              process.env.TOKEN_SECRET,
-              { expiresIn: '1d' },
-              (err, token) => {
-                if (err) {
-                  respondError422(res, next);
-                } else {
-                  res.json({ token });
-                }
-              },
-            );
-          } else {
-            respondError422(res, next);
-          }
-        });
+        bcrypt
+          .compare(req.body.password, user.password)
+          .then((result) => {
+            if (result) {
+              createTokenSendResponse(user, res, next);
+            } else {
+              respondError422(res, next);
+            }
+           });
       } else {
         respondError422(res, next);
       }
