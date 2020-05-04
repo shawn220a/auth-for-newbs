@@ -1,6 +1,7 @@
 const express = require('express');
 const Joi = require('@hapi/joi');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const db = require('../db/connection');
 const users = db.get('users');
@@ -38,7 +39,7 @@ router.post('/signup', (req, res, next) => {
       if (user) {
         // User in DB already, Pick another Username
         const error = new Error(
-          'Username already Exits. Please create a new one.'
+          'Username already Exits. Please create a new one.',
         );
         res.status(409);
         next(error);
@@ -48,7 +49,7 @@ router.post('/signup', (req, res, next) => {
           // Insert Username and Password in DB
           const newUser = {
             username: req.body.username,
-            password: hashedPassword
+            password: hashedPassword,
           };
 
           users.insert(newUser).then((insertedUser) => {
@@ -56,7 +57,57 @@ router.post('/signup', (req, res, next) => {
             res.json(insertedUser);
           });
         });
-      };
+      }
+    });
+});
+
+function respondError422(res, next) {
+  res.status(422);
+  const error = new Error('Unable to login.');
+  next(error);
+}
+
+router.post('/login', (req, res, next) => {
+  const result = schema.validate(req.body);
+
+  if (result.error) {
+    respondError422(res, next);
+  }
+
+  users
+    .findOne({
+      username: req.body.username,
+    })
+    .then((user) => {
+      if (user) {
+        // Comparing login password with hashed password
+        bcrypt.compare(req.body.password, user.password).then((result) => {
+          if (result) {
+            // Creating JWT
+            const payload = {
+              _id: user._id,
+              username: user.username,
+            };
+
+            jwt.sign(
+              payload,
+              process.env.TOKEN_SECRET,
+              { expiresIn: '1d' },
+              (err, token) => {
+                if (err) {
+                  respondError422(res, next);
+                } else {
+                  res.json({ token });
+                }
+              },
+            );
+          } else {
+            respondError422(res, next);
+          }
+        });
+      } else {
+        respondError422(res, next);
+      }
     });
 });
 
