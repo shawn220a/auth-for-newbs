@@ -26,7 +26,7 @@ router.post('/signup', (req, res, next) => {
   const result = schema.validate(req.body);
 
   if (result.error) {
-    res.status(406);
+    res.status(422);
     next(result.error);
   }
 

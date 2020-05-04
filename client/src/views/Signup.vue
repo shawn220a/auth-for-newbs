@@ -2,13 +2,18 @@
   <div>
     <h1>Sign Up</h1>
 
+    <!-- Loading Image -->
+    <div v-if="signingUp">
+      <img src="../assets/Infinity-1s-200px.svg" />
+    </div>
+
     <!-- Error Message -->
     <div v-if="errorMessage" class="alert alert-danger" role="alert">
       {{ errorMessage }}
     </div>
 
     <!-- Sign Up Form -->
-    <form @submit.prevent="signup">
+    <form v-if="!signingUp" @submit.prevent="signup">
       <div class="form-group">
         <label for="username">Username</label>
         <input
@@ -83,6 +88,7 @@ const schema = Joi.object({
 
 export default {
   data: () => ({
+    signingUp: false,
     errorMessage: '',
     user: {
       username: '',
@@ -108,6 +114,8 @@ export default {
           password: this.user.password,
         };
 
+        this.signingUp = true;
+
         fetch(SIGNUP_URL, {
           method: 'POST',
           body: JSON.stringify(body),
@@ -123,11 +131,17 @@ export default {
               throw new Error(error.message);
             });
           })
-          .then((user) => {
-            console.log(user);
+          .then(() => {
+            setTimeout(() => {
+              this.signingUp = false;
+              this.$router.push('/login');
+            }, 1000);
           })
           .catch((err) => {
-            console.log(err);
+            setTimeout(() => {
+              this.signingUp = false;
+              this.errorMessage = err.message;
+            }, 1000);
           });
       }
     },
